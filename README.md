@@ -43,20 +43,4 @@ Uygulama yöneticilerinin verileri ve sistemi yönettiği bölüm:
     * **`screens` & `admin_screens`:** Servislerden alınan verileri kullanıcıya gösteren arayüz katmanı.
     * **`widgets`:** `product_tile.dart` gibi tekrar kullanılabilir arayüz bileşenleri.
 
-## 🏁 Projeyi Başlatma
 
-1.  Projeyi klonlayın:
-    ```sh
-    git clone [https://github.com/kullanici-adiniz/proje-adiniz.git](https://github.com/kullanici-adiniz/proje-adiniz.git)
-    cd proje-adiniz
-    ```
-
-2.  Paketleri yükleyin:
-    ```sh
-    flutter pub get
-    ```
-
-3.  Uygulamayı çalıştırın:
-    ```sh
-    flutter run
-    ```
