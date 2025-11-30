@@ -4,13 +4,14 @@ import '../models/coupon.dart';
 class CouponService {
   static final SupabaseClient _client = Supabase.instance.client;
 
-  // Kupon doğrulama
-  static Future<Coupon?> validateCoupon(String code) async {
+  // ✅ YENİ: Kupon doğrularken hangi markette denendiğini kontrol et
+  static Future<Coupon?> validateCoupon(String code, String marketId) async {
     final response = await _client
         .from('coupons')
         .select()
         .eq('code', code)
         .eq('is_active', true)
+        .eq('market_id', marketId) // <-- Başka marketin kuponu burada geçmez
         .limit(1)
         .maybeSingle();
 
@@ -19,10 +20,13 @@ class CouponService {
     return Coupon.fromJson(response);
   }
 
-  // Kuponları çek
-  static Future<List<Coupon>> fetchAllCoupons() async {
+  // ✅ YENİ: Sadece o marketin kuponlarını listele (Kampanyalar sayfası için)
+  static Future<List<Coupon>> fetchAllCoupons(String marketId) async {
     try {
-      final response = await _client.from('coupons').select();
+      final response = await _client
+          .from('coupons')
+          .select()
+          .eq('market_id', marketId); // <-- Filtre
 
       final data = response as List<dynamic>;
       return data.map((e) => Coupon.fromJson(e as Map<String, dynamic>)).toList();
@@ -31,8 +35,8 @@ class CouponService {
     }
   }
 
-  // Kupon ekle
-  static Future<void> addCoupon(Coupon coupon) async {
+  // ✅ YENİ: Kupon eklerken market_id ekle
+  static Future<void> addCoupon(Coupon coupon, String marketId) async {
     try {
       await _client.from('coupons').insert({
         'code': coupon.code,
@@ -41,13 +45,13 @@ class CouponService {
         'min_amount': coupon.minAmount,
         'description': coupon.description,
         'is_active': coupon.isActive,
+        'market_id': marketId, // <-- Kayıt
       });
     } catch (e) {
       throw Exception('Kupon eklenemedi: $e');
     }
   }
 
-  // Kupon güncelle
   static Future<void> updateCoupon(Coupon coupon) async {
     try {
       await _client.from('coupons').update({

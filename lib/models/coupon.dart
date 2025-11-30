@@ -5,6 +5,7 @@ class Coupon {
   final double minAmount;
   final String description;
   final bool isActive;
+  final String marketId; // ✅ YENİ
 
   Coupon({
     required this.code,
@@ -13,6 +14,7 @@ class Coupon {
     required this.minAmount,
     required this.description,
     required this.isActive,
+    required this.marketId, // ✅
   });
 
   factory Coupon.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class Coupon {
       minAmount: (json['min_amount'] as num).toDouble(),
       description: json['description'],
       isActive: json['is_active'] ?? false,
+      marketId: json['market_id'] ?? '', // ✅
     );
   }
 }

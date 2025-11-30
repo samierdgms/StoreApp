@@ -3,50 +3,37 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class MaintenanceService {
   static final SupabaseClient _client = Supabase.instance.client;
 
-  // Bakım modu durumunu Supabase'den al
+  // Bakım modu açık mı? (Boolean değer)
   static Future<bool> isMaintenanceActive() async {
     try {
-      final Map<String, dynamic>? response = await _client
+      final response = await _client
           .from('settings')
           .select('value')
           .eq('name', 'is_maintenance')
-          .limit(1)
           .maybeSingle();
 
       return response != null && response['value'] == true;
     } catch (e) {
-      print('Bakım durumu kontrolü sırasında hata: $e');
       return false;
     }
   }
 
-  // Bakım modunu aktif et
-  static Future<bool> activateMaintenanceMode() async {
+  // ✅ YENİ: Süper Admin ID'sini çek (Text değer)
+  static Future<String?> getSuperAdminId() async {
     try {
-      await _client
+      final response = await _client
           .from('settings')
-          .update({'value': true})
-          .eq('name', 'is_maintenance');
+          .select('text_value') // Yeni eklediğimiz sütun
+          .eq('name', 'super_admin_id')
+          .maybeSingle();
 
-      return true;
+      if (response != null) {
+        return response['text_value'] as String?;
+      }
+      return null;
     } catch (e) {
-      print('Bakım modu aktif edilirken hata: $e');
-      return false;
-    }
-  }
-
-  // Bakım modunu pasif et
-  static Future<bool> deactivateMaintenanceMode() async {
-    try {
-      await _client
-          .from('settings')
-          .update({'value': false})
-          .eq('name', 'is_maintenance');
-
-      return true;
-    } catch (e) {
-      print('Bakım modu pasif edilirken hata: $e');
-      return false;
+      print('Süper Admin ID alınamadı: $e');
+      return null;
     }
   }
 }

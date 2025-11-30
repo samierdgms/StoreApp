@@ -7,7 +7,8 @@ class Product {
   final bool inStock;
   final String category;
   final String description;
-  final bool hasDiscount; // Yeni özellik
+  final bool hasDiscount;
+  final String marketId; // ✅ YENİ: Hangi marketin ürünü?
 
   Product({
     required this.id,
@@ -18,20 +19,22 @@ class Product {
     required this.inStock,
     required this.category,
     required this.description,
-    required this.hasDiscount,  // Yeni özellik
+    required this.hasDiscount,
+    required this.marketId, // ✅ Zorunlu alan
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
       id: json['id'].toString(),
       name: json['name'],
-      imageUrl: json['image_url'],
+      imageUrl: json['image_url'] ?? '',
       unit: json['unit'].toString(),
       price: double.parse(json['price'].toString()),
       inStock: json['in_stock'] == true,
       category: json['category'],
       description: json['description'] ?? '',
       hasDiscount: json['has_discount'] ?? false,
+      marketId: json['market_id'] ?? '', // ✅
     );
   }
 }

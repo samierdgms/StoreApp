@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:async';  // Timer kullanabilmek için import ediyoruz
 import '../models/cart_item.dart';
 import '../models/product.dart';
 import '../models/coupon.dart';
@@ -9,17 +8,20 @@ class CartProvider with ChangeNotifier {
   final List<CartItem> _items = [];
   Coupon? _appliedCoupon;
 
-  // Başlangıçta default değerler
+  // Varsayılan değerler
   double freeDeliveryThreshold = 1499.0;
   double deliveryFee = 29.99;
-  double minimumOrder = 1000.0; // Minimum sipariş tutarı
+  double minimumOrder = 1000.0;
 
   List<CartItem> get items => _items;
   Coupon? get appliedCoupon => _appliedCoupon;
 
+  // Ham sepet tutarı (Kuponsuz)
   double get totalPrice => _items.fold(0, (sum, item) => sum + item.totalPrice);
 
+  // İndirim Tutarı
   double get discount {
+    // Kupon yoksa veya sepet tutarı kupon limitinin altına düştüyse indirim 0 olsun
     if (_appliedCoupon == null || totalPrice < _appliedCoupon!.minAmount) return 0;
 
     if (_appliedCoupon!.type == 'percent') {
@@ -31,32 +33,28 @@ class CartProvider with ChangeNotifier {
     return 0;
   }
 
+  // İndirim düştükten sonraki ürün tutarı (Teslimat hariç)
   double get finalPrice => totalPrice - discount;
 
+  // Genel Toplam (Teslimat dahil)
   double get grandTotal {
-
     if (finalPrice >= freeDeliveryThreshold) {
       return finalPrice;
     }
     return finalPrice + deliveryFee;
   }
 
+  // Minimum tutar karşılandı mı? (İndirimli tutar üzerinden kontrol edilir)
+  bool get isMinimumMet => finalPrice >= minimumOrder;
 
-
-  // Supabase'den güncel fee bilgilerini çekme
-  Future<void> fetchFees() async {
+  // ✅ GÜNCELLENDİ: Artık marketId parametresi alıyor
+  Future<void> fetchFees(String marketId) async {
     try {
+      final fees = await FeeService.getFees(marketId);
 
-
-      final fees = await FeeService.getFees();
-
-      // Supabase'ten gelen verilerle güncelleme yapalım
       freeDeliveryThreshold = fees['free_delivery_amount'] ?? 1499.0;
       deliveryFee = fees['delivery_fee'] ?? 29.99;
-      minimumOrder = fees['minimum_order_amount'] ?? 1000.0; // minimum_order_amount ekledik
-
-      // Verilerin başarılı bir şekilde alındığını kontrol et
-
+      minimumOrder = fees['minimum_order_amount'] ?? 1000.0;
 
       notifyListeners();
     } catch (e) {
@@ -64,21 +62,12 @@ class CartProvider with ChangeNotifier {
     }
   }
 
-  // Timer ile sürekli olarak fetchFees'i çağırmak
-  void startFeeUpdateTimer() {
-    Timer.periodic(Duration(minutes: 5), (timer) {
-      fetchFees();  // Her 5 dakikada bir fetchFees fonksiyonu çağrılacak
-    });
+  CartProvider() {
+    // Constructor
   }
 
-  // CartProvider constructor
-  CartProvider() {
-    fetchFees();  // İlk başta fetchFees'i çağırıyoruz
-    startFeeUpdateTimer();  // Timer'ı başlatıyoruz
-  }
-  bool get isMinimumMet => finalPrice >= minimumOrder;
   void addToCart(Product product) {
-    if (!product.inStock) return; // ❗️ Stok kontrolü
+    if (!product.inStock) return;
 
     final index = _items.indexWhere((item) => item.product.id == product.id);
     if (index != -1) {
@@ -91,6 +80,12 @@ class CartProvider with ChangeNotifier {
 
   void removeFromCart(Product product) {
     _items.removeWhere((item) => item.product.id == product.id);
+
+    // Eğer sepet boşaldıysa kuponu da sıfırla
+    if (_items.isEmpty) {
+      _appliedCoupon = null;
+    }
+
     notifyListeners();
   }
 
@@ -122,9 +117,10 @@ class CartProvider with ChangeNotifier {
     _appliedCoupon = coupon;
     notifyListeners();
   }
+
+  // ✅ EKLENDİ: Kuponu kaldırma metodu
+  void removeCoupon() {
+    _appliedCoupon = null;
+    notifyListeners();
+  }
 }
-
-
-
-
-

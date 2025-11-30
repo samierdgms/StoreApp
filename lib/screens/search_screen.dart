@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/product.dart';
 import '../services/product_service.dart';
 import '../widgets/product_tile.dart';
+import '../providers/market_provider.dart';
 
 enum SortOrder { ascending, descending, discountFirst }
 
@@ -21,33 +23,45 @@ class _SearchScreenState extends State<SearchScreen> {
   List<String> _categories = [];
   String? _selectedCategory;
 
+  final TextEditingController _searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
-    _loadProducts();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProducts();
+    });
   }
 
-  // Ürünleri ve kategorileri yükleme
   Future<void> _loadProducts() async {
+    final marketId = Provider.of<MarketProvider>(context, listen: false).marketId;
+
+    if (marketId == null) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+
     try {
-      final products = await ProductService.fetchProducts();
-      final categories = await ProductService.fetchCategories(); // Kategorileri yükle
+      final products = await ProductService.fetchProducts(marketId);
+      final categories = await ProductService.fetchCategories(marketId);
 
-      setState(() {
-        _allProducts = products;
-        _filteredProducts = products;
-        _categories = categories;
-
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _allProducts = products;
+          _filteredProducts = products;
+          _categories = categories;
+          _loading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 
-  // Ürünleri filtrele ve sırala
   void _filterAndSortProducts(String query) {
     List<Product> filtered = _allProducts.where((product) {
       final nameLower = product.name.toLowerCase();
@@ -56,7 +70,6 @@ class _SearchScreenState extends State<SearchScreen> {
           (_selectedCategory == null || _selectedCategory == 'Tümü' || product.category == _selectedCategory);
     }).toList();
 
-    // Sıralama seçenekleri
     if (_sortOrder != null) {
       if (_sortOrder == SortOrder.ascending) {
         filtered.sort((a, b) => a.price.compareTo(b.price));
@@ -77,7 +90,6 @@ class _SearchScreenState extends State<SearchScreen> {
     });
   }
 
-  // Kategoriyi seç
   void _onCategoryChanged(String? newCategory) {
     setState(() {
       _selectedCategory = newCategory;
@@ -85,7 +97,6 @@ class _SearchScreenState extends State<SearchScreen> {
     _filterAndSortProducts(_searchQuery);
   }
 
-  // Sıralama seçeneklerini güncelle
   void _onSortOrderChanged(SortOrder? newOrder) {
     setState(() {
       _sortOrder = newOrder;
@@ -93,157 +104,274 @@ class _SearchScreenState extends State<SearchScreen> {
     _filterAndSortProducts(_searchQuery);
   }
 
-  int _getCrossAxisCount(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
+  // Modal Bottom Sheet Şablonu
+  void _showFilterModal({required String title, required Widget content}) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const Divider(),
+            const SizedBox(height: 10),
+            content,
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
 
-    if (width < 600) {
-      return 2;
-    } else if (width < 900) {
-      return 3;
-    } else {
-      return 4;
-    }
+  Widget _buildFilterButton({
+    required String label,
+    required IconData icon,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isActive ? Colors.green : Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: isActive ? Colors.green : Colors.grey.shade300),
+          boxShadow: [
+            if (!isActive)
+              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5, offset: const Offset(0, 2))
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: isActive ? Colors.white : Colors.grey.shade700),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isActive ? Colors.white : Colors.grey.shade800,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (isActive) ...[
+              const SizedBox(width: 8),
+              const Icon(Icons.check, size: 16, color: Colors.white),
+            ]
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Ürün Arama'), backgroundColor: Colors.green),
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        title: const Text('Ürün Arama', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black),
+      ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Colors.green))
           : Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-            child: Row(
+          // Arama ve Filtre Alanı
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+            ),
+            child: Column(
               children: [
-                Expanded(
-                  child: TextField(
-                    onChanged: _filterAndSortProducts,
-                    decoration: InputDecoration(
-                      labelText: 'Ürün ara',
-                      labelStyle: TextStyle(color: Colors.grey[700]),
-                      prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
-                      filled: true,
-                      fillColor: Colors.grey[100],
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide.none,
-                      ),
+                // Arama Çubuğu
+                TextField(
+                  controller: _searchController,
+                  onChanged: _filterAndSortProducts,
+                  decoration: InputDecoration(
+                    hintText: 'Ne aramıştınız?',
+                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                      icon: const Icon(Icons.clear, color: Colors.grey),
+                      onPressed: () {
+                        _searchController.clear();
+                        _filterAndSortProducts('');
+                      },
+                    )
+                        : null,
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
                     ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                 ),
-                const SizedBox(width: 10),
-                GestureDetector(
-                  onTap: () {
-                    // Sıralama menüsüne geri dönme işlemi
-                    showModalBottomSheet(
-                      context: context,
-                      builder: (_) => Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ListTile(
-                              title: const Text('Fiyata Göre Artan'),
-                              onTap: () {
-                                _onSortOrderChanged(SortOrder.ascending);
-                                Navigator.pop(context);
-                              },
+                const SizedBox(height: 16),
+
+                // Filtre Butonları
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildFilterButton(
+                        label: _sortOrder == null ? 'Sırala' : _getSortLabel(_sortOrder!),
+                        icon: Icons.sort,
+                        isActive: _sortOrder != null,
+                        onTap: () {
+                          _showFilterModal(
+                            title: 'Sıralama Ölçütü',
+                            content: Column(
+                              children: [
+                                ListTile(
+                                  leading: const Icon(Icons.arrow_upward),
+                                  title: const Text('Fiyat: Artan'),
+                                  selected: _sortOrder == SortOrder.ascending,
+                                  selectedColor: Colors.green,
+                                  onTap: () {
+                                    _onSortOrderChanged(SortOrder.ascending);
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                                ListTile(
+                                  leading: const Icon(Icons.arrow_downward),
+                                  title: const Text('Fiyat: Azalan'),
+                                  selected: _sortOrder == SortOrder.descending,
+                                  selectedColor: Colors.green,
+                                  onTap: () {
+                                    _onSortOrderChanged(SortOrder.descending);
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                                ListTile(
+                                  leading: const Icon(Icons.local_offer),
+                                  title: const Text('Önce İndirimliler'),
+                                  selected: _sortOrder == SortOrder.discountFirst,
+                                  selectedColor: Colors.green,
+                                  onTap: () {
+                                    _onSortOrderChanged(SortOrder.discountFirst);
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                                if (_sortOrder != null)
+                                  ListTile(
+                                    leading: const Icon(Icons.close, color: Colors.red),
+                                    title: const Text('Sıralamayı Temizle', style: TextStyle(color: Colors.red)),
+                                    onTap: () {
+                                      _onSortOrderChanged(null);
+                                      Navigator.pop(context);
+                                    },
+                                  ),
+                              ],
                             ),
-                            ListTile(
-                              title: const Text('Fiyata Göre Azalan'),
-                              onTap: () {
-                                _onSortOrderChanged(SortOrder.descending);
-                                Navigator.pop(context);
-                              },
-                            ),
-                            ListTile(
-                              title: const Text('İndirimli Ürünler Öncelikli'),
-                              onTap: () {
-                                _onSortOrderChanged(SortOrder.discountFirst);
-                                Navigator.pop(context);
-                              },
-                            ),
-                          ],
-                        ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.green[100],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      'Sırala',
-                      style: TextStyle(color: Colors.green),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                GestureDetector(
-                  onTap: () {
-                    // Kategori seçme modal'ını açma
-                    showModalBottomSheet(
-                      context: context,
-                      builder: (_) => Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: _categories.map((category) {
-                            return ListTile(
-                              title: Text(category),
-                              onTap: () {
-                                _onCategoryChanged(category);
-                                Navigator.pop(context);
-                              },
-                            );
-                          }).toList(),
-                        ),
+                      const SizedBox(width: 10),
+                      _buildFilterButton(
+                        label: _selectedCategory ?? 'Kategori',
+                        icon: Icons.category_outlined,
+                        isActive: _selectedCategory != null && _selectedCategory != 'Tümü',
+                        onTap: () {
+                          _showFilterModal(
+                            title: 'Kategori Seç',
+                            content: SizedBox(
+                              height: 300,
+                              child: ListView.builder(
+                                itemCount: _categories.length,
+                                itemBuilder: (ctx, index) {
+                                  final category = _categories[index];
+                                  return ListTile(
+                                    title: Text(category),
+                                    selected: _selectedCategory == category,
+                                    selectedColor: Colors.green,
+                                    trailing: _selectedCategory == category ? const Icon(Icons.check, color: Colors.green) : null,
+                                    onTap: () {
+                                      _onCategoryChanged(category);
+                                      Navigator.pop(context);
+                                    },
+                                  );
+                                },
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.green[100],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      'Kategori Seç',
-                      style: TextStyle(color: Colors.green),
-                    ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
+
+          // Sonuç Listesi
           Expanded(
             child: _filteredProducts.isEmpty
                 ? Center(
-              child: Text(
-                _searchQuery.isEmpty ? 'Lütfen arama yapın' : 'Ürün bulunamadı',
-                style: const TextStyle(fontSize: 16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.search_off, size: 80, color: Colors.grey[300]),
+                  const SizedBox(height: 20),
+                  Text(
+                    _searchQuery.isEmpty ? 'Arama yapmaya başlayın' : 'Sonuç bulunamadı',
+                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                  ),
+                ],
               ),
             )
                 : GridView.builder(
-              padding: const EdgeInsets.all(10),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: _getCrossAxisCount(context),
+              padding: const EdgeInsets.all(16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
                 childAspectRatio: 0.7,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
               ),
               itemCount: _filteredProducts.length,
               itemBuilder: (ctx, index) {
-                return ProductTile(product: _filteredProducts[index]);
+                // ProductTile'a hafif gölge ekleyerek modernleştiriyoruz
+                return Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))
+                    ],
+                  ),
+                  child: ProductTile(product: _filteredProducts[index]),
+                );
               },
             ),
           ),
         ],
       ),
     );
+  }
+
+  String _getSortLabel(SortOrder order) {
+    switch (order) {
+      case SortOrder.ascending: return 'Fiyat Artan';
+      case SortOrder.descending: return 'Fiyat Azalan';
+      case SortOrder.discountFirst: return 'İndirimli';
+    }
   }
 }

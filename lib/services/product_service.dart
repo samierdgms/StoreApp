@@ -4,15 +4,16 @@ import '../models/product.dart';
 class ProductService {
   static final SupabaseClient _client = Supabase.instance.client;
 
-  // Ürünleri almak
-  static Future<List<Product>> fetchProducts() async {
+  // Market ID'ye göre ürünleri getir
+  static Future<List<Product>> fetchProducts(String marketId) async {
     try {
       final List<dynamic> response = await _client
           .from('products')
-          .select();
+          .select()
+          .eq('market_id', marketId);
 
       if (response.isEmpty) {
-        throw Exception('Ürünler alınamadı.');
+        return [];
       }
 
       return response
@@ -23,31 +24,34 @@ class ProductService {
     }
   }
 
-  // Kategorileri almak
-  static Future<List<String>> fetchCategories() async {
+  // Kategorileri getir
+  static Future<List<String>> fetchCategories(String marketId) async {
     try {
       final List<dynamic> response = await _client
           .from('products')
-          .select('category');
+          .select('category')
+          .eq('market_id', marketId);
 
       if (response.isEmpty) {
-        throw Exception('Kategoriler alınamadı.');
+        return ['Tümü'];
       }
 
-      final categories = response
+      final categoriesSet = response
           .map((e) => (e as Map<String, dynamic>)['category'] as String)
-          .toSet()
-          .toList();
+          .toSet();
 
-      categories.sort();
-      return ['Tümü', ...categories];
+      categoriesSet.remove('Tümü');
+
+      final sortedCategories = categoriesSet.toList()..sort();
+
+      return ['Tümü', ...sortedCategories];
     } catch (e) {
       throw Exception('Kategoriler alınamadı: $e');
     }
   }
 
-  // Yeni bir ürün eklemek
-  static Future<void> addProduct(Product product) async {
+  // ✅ YENİ ÜRÜN EKLEME (INSERT)
+  static Future<void> addProduct(Product product, String marketId) async {
     try {
       await _client.from('products').insert({
         'name': product.name,
@@ -58,17 +62,19 @@ class ProductService {
         'category': product.category,
         'description': product.description,
         'has_discount': product.hasDiscount,
+        'market_id': marketId, // Ekleme yaparken market ID şart
       });
     } catch (e) {
       throw Exception('Ürün eklenemedi: $e');
     }
   }
 
-  // Ürün güncellemek
+  // ✅ ÜRÜN GÜNCELLEME (UPDATE)
   static Future<void> updateProduct(Product product) async {
     try {
-      await _client.from('products').upsert({
-        'id': product.id,
+      // 🛠️ DÜZELTME: market_id'yi bu haritaya (Map) eklemiyoruz!
+      // Sadece değiştirilebilir alanları gönderiyoruz.
+      await _client.from('products').update({
         'name': product.name,
         'price': product.price,
         'image_url': product.imageUrl,
@@ -77,18 +83,16 @@ class ProductService {
         'category': product.category,
         'description': product.description,
         'has_discount': product.hasDiscount,
-      });
+      }).eq('id', product.id); // Sadece bu ID'ye sahip ürünü güncelle
     } catch (e) {
       throw Exception('Ürün güncellenemedi: $e');
     }
   }
 
-  // Ürün silmek
+  // Ürün silme
   static Future<void> deleteProduct(String productId) async {
     try {
       await _client.from('products').delete().eq('id', productId);
-
-
     } catch (e) {
       throw Exception('Ürün silinemedi: $e');
     }

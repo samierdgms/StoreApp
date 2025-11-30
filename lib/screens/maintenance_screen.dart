@@ -5,21 +5,40 @@ class MaintenanceScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Colors.white,
+    return Scaffold(
+      backgroundColor: Colors.grey[50], // Hafif gri arka plan
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.build, size: 80, color: Colors.orange),
-            SizedBox(height: 20),
-            Text(
-              "Uygulama şu anda bakımda",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
-            Text("Lütfen daha sonra tekrar deneyin."),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade100,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.build_circle, size: 80, color: Colors.orange),
+              ),
+              const SizedBox(height: 40),
+              const Text(
+                "Sistem Bakım Çalışması",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.orange),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 15),
+              Text(
+                "Uygulama şu anda planlı bir bakım sürecindedir. Daha iyi bir deneyim sunmak için çalışıyoruz.",
+                style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 40),
+              const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.orange)),
+              const SizedBox(height: 20),
+              const Text("Kısa süre sonra tekrar deneyin.", style: TextStyle(color: Colors.grey)),
+            ],
+          ),
         ),
       ),
     );
