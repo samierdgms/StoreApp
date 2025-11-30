@@ -35,8 +35,8 @@ dependencies:
   http: ^1.4.0
 
   url_launcher: ^6.3.0
-  package_info_plus: ^8.0.0 # Mevcut sürümü öğrenmek için
-  permission_handler: ^11.3.1 # Gerekirse izin istemek için
+  package_info_plus: ^8.0.0
+  permission_handler: ^11.3.1
   geolocator: ^11.0.0
   flutter_map: ^7.0.0
   latlong2: ^0.9.1
