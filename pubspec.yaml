@@ -28,10 +28,18 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+
   flutter:
     sdk: flutter
   provider: ^6.1.1
   http: ^1.4.0
+
+  url_launcher: ^6.3.0
+  package_info_plus: ^8.0.0 # Mevcut sürümü öğrenmek için
+  permission_handler: ^11.3.1 # Gerekirse izin istemek için
+  geolocator: ^11.0.0
+  flutter_map: ^7.0.0
+  latlong2: ^0.9.1
   supabase_flutter: ^2.9.1
   flutter_staggered_animations: ^1.0.0
   email_validator: ^2.0.1
@@ -43,6 +51,7 @@ dependencies:
   flutter_dotenv: ^5.2.1
 
   shimmer: ^2.0.0
+  audioplayers: ^6.5.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -62,6 +71,7 @@ flutter:
   assets:
     - assets/splash_logo.png
     - assets/.env
+    - assets/sounds/
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
