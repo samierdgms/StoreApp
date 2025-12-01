@@ -1,46 +1,51 @@
-# Flutter Market Uygulaması Projesi
+# 🛒 Multi-Market Flutter E-Commerce Solution
 
-Bu proje, [Flutter](https://flutter.dev) çatısı kullanılarak geliştirilmiş kapsamlı bir mobil market (e-ticaret) uygulamasıdır. Uygulama, hem son kullanıcıların alışveriş yapabileceği bir vitrin arayüzü hem de yöneticilerin sistemi yönetebileceği bir admin paneli içerir.
+[![Flutter](https://img.shields.io/badge/Flutter-3.0%2B-blue?logo=flutter)](https://flutter.dev)
+[![Supabase](https://img.shields.io/badge/Supabase-Backend-green?logo=supabase)](https://supabase.com)
+[![License](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
+[![Language](https://img.shields.io/badge/Language-Turkish-red)](README.tr.md)
 
-Tüm veriler (ürünler, siparişler, kullanıcılar vb.) dinamiktir ve bir backend/veritabanı ile `services` katmanı üzerinden yönetilmektedir.
+> **[🇹🇷 Türkçe README için buraya tıklayın](README.tr.md)**
 
-## 🚀 Temel Özellikler
+A comprehensive, full-stack e-commerce application built with **Flutter** and **Supabase**. This project features a unique **geolocation-based multi-market architecture**, allowing users to shop from the nearest store while providing market owners with a dedicated **Real-Time Admin Panel**.
 
-Proje, iki ana bölümden oluşmaktadır: Kullanıcı Arayüzü ve Yönetici Paneli.
+## ✨ Key Features
 
-### 1. Kullanıcı Arayüzü (`/screens`)
+### 📱 User App (Customer Experience)
+* **📍 Location-Based Market Selection:** Users view and select active markets on an interactive map (`flutter_map` & `geolocator`). Automatically sorts by distance.
+* **🛍️ Smart Shopping Cart:**
+    * Dynamic delivery fee calculation.
+    * Free delivery thresholds and minimum order limits managed by the market.
+    * **Coupon System:** Supports percentage (%) and fixed amount (₺) discounts.
+* **📦 Order Tracking:**
+    * Real-time status updates (Preparing, On the Way, Delivered).
+    * Live in-app notifications via Supabase Realtime.
+* **🔎 Advanced Product Discovery:** Category filtering, search with sorting (Price, Discount), and Hero animations.
+* **👤 User Profile:** Address management, order history, and secure password updates.
 
-Son kullanıcıların market alışverişi yapmak için kullandığı ekranlar:
+### 🛠️ Admin Panel (Market Owner Dashboard)
+* **🛡️ Role-Based Access:** Automatically detects market owners upon login and redirects to the Admin Dashboard.
+* **🔔 Real-Time Order Management:**
+    * **Audio Notifications:** Plays a sound alert when a new order arrives.
+    * Kanban-style status management (Pending -> Active -> Delivered/Cancelled).
+    * View customer details and order snapshots.
+* **📊 Analytics:** Visual revenue reports (Daily/Monthly) split by Cash vs. Credit Card.
+* **⚙️ Store Management:**
+    * One-tap Open/Close shop mechanism.
+    * Manage delivery fees and limits instantly.
+    * **Inventory & Campaigns:** Full CRUD for products and discount coupons.
 
-* **Giriş & Kayıt:** Güvenli kullanıcı kimlik doğrulaması (`login_screen.dart`, `registration_screen.dart`).
-* **Ana Sayfa:** Öne çıkan ürünlerin ve kategorilerin listelendiği vitrin (`home_screen.dart`).
-* **Ürün Arama:** Kullanıcıların ürünleri arayabilmesi (`search_screen.dart`).
-* **Ürün Detay:** Bir ürünün özelliklerinin, fiyatının ve görsellerinin incelendiği ekran (`product_detail_screen.dart`).
-* **Sepet:** Alışveriş sepeti yönetimi (ekleme, çıkarma, adet güncelleme) (`cart_screen.dart`).
-* **Kampanyalar:** Mevcut indirim ve kampanyaların gösterilmesi (`campaign_screen.dart`).
-* **Ödeme:** Sepetin onaylanması ve ödeme işlemlerinin yapılması (`payment_screen.dart`).
-* **Sipariş Geçmişi:** Kullanıcının eski siparişlerini ve detaylarını görmesi (`order_history_screen.dart`, `order_detail_screen.dart`).
-* **Kullanıcı Profili:** Kullanıcı bilgilerinin ve ayarlarının yönetilmesi (`user_profile_screen.dart`).
-* **Yardım & Bakım:** Destek ve bilgilendirme ekranları (`help_screen.dart`, `maintenance_screen.dart`).
+### 🔧 System Capabilities
+* **Maintenance Mode:** Remotely lock the app during server updates via Supabase settings.
+* **Force Update:** Checks app version against the cloud and prompts users to update if critical changes are made.
+* **Robust Backend:** Powered by Supabase Auth, Database, and Storage.
 
-### 2. Yönetici Paneli (`/admin_screens`)
+---
 
-Uygulama yöneticilerinin verileri ve sistemi yönettiği bölüm:
+## 🏗️ Tech Stack
 
-* **Gelir Takibi:** Günlük ve genel gelirlerin görüntülendiği dashboard (`revenue_screen.dart`, `daily_revenue_detail_screen.dart`).
-* **Ürün Yönetimi:** Sisteme yeni ürün ekleme, mevcut ürünleri düzenleme ve silme (`product_settings_screen.dart`).
-* **Kupon Yönetimi:** İndirim kuponları oluşturma ve yönetme (`coupons_settings_screen.dart`).
-* **Sipariş Ayarları:** Gelen siparişlerle ilgili ayarların yönetilmesi (`order_settings_screen.dart`).
-* **Sistem Ayarları:** Uygulamanın genel ayarları (örn: bakım modu, ücretler) (`system_settings_screen.dart`, `fee_settings_screen.dart`).
-
-## 🛠️ Teknoloji Yığını ve Mimari
-
-* **Platform:** Flutter & Dart
-* **Durum Yönetimi (State Management):** Provider (`cart_provider.dart`)
-* **Mimari:** Servis Katmanlı Mimari
-    * **`models`:** `Product`, `Order`, `CartItem`, `Coupon` gibi temiz veri modelleri.
-    * **`services`:** Veritabanı veya API ile iletişimi yöneten soyutlanmış servisler (`product_service.dart`, `order_service.dart`, `coupon_service.dart` vb.).
-    * **`screens` & `admin_screens`:** Servislerden alınan verileri kullanıcıya gösteren arayüz katmanı.
-    * **`widgets`:** `product_tile.dart` gibi tekrar kullanılabilir arayüz bileşenleri.
-
-
+* **Frontend:** Flutter (Dart)
+* **State Management:** Provider
+* **Backend:** Supabase (PostgreSQL, Auth, Realtime, Storage)
+* **Maps:** `flutter_map`, `latlong2`, `geolocator`
+* **Utilities:** `audioplayers` (notifications), `url_launcher`, `package_info_plus`, `flutter_dotenv`
